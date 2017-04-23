@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="commons-csv-1.2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-csv-1.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-dbcp2-2.1.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-dbutils-1.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-io-2.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-logging-1.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/commons-pool2-2.4.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/mariadb-java-client-1.5.9.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/sqljdbc42.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
