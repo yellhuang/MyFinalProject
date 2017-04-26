@@ -1,4 +1,4 @@
-package stringcut.example;
+package test.example;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * Created by yellow on 2017/4/19.
  */
 
-class Test1 {
+class StringTest1 {
 
     public static void main(String[] args) throws Exception {
         String capacity = "150ml";
@@ -49,6 +49,9 @@ class Test1 {
 
 
         String  a = "   天 天 天     ";
+        System.out.println(a.trim());
+
+        String  b = "";
         System.out.println(a.trim());
     }
 

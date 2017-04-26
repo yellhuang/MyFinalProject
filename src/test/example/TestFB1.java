@@ -1,4 +1,4 @@
-package stringcut.example;
+package test.example;
 
 import java.net.URLEncoder;
 

@@ -1,9 +1,9 @@
-package stringcut.example;
+package test.example;
 
 /**
  * Created by Student on 2017/4/24.
  */
-public class Test2 {
+public class StringTest2 {
     public static void main(String args[]){
         String str1 = "asxd";
         String str2 = "eyhj";
