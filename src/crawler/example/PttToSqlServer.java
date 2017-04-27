@@ -15,27 +15,21 @@ import java.util.HashSet;
 import java.util.List;
 
 /**
- * 範例: 使用爬蟲包取得八卦版最後50篇文章的網址
- * <p>
- * 重點
- * 1. cookie 如何設定
- * 2. 如何從文章特性中提取資料
- * 3. 分頁資料練習
- * 4. 簡易將資料量化，做簡易的資料探索
- *
- * @author Abola Lee
+ * Created by yellow on 2017/4/23.
  */
 class PttToSqlServer {
     static List<String> articleInfo = new ArrayList<>();
     static int count = 1;
-    final static String board = "BeautySalon";
+    final static String board = "MakeUp";
     final static String pttMainPage = "https://www.ptt.cc/bbs/" + board + "/index.html";
     final static String pttIndexPage = "https://www.ptt.cc/bbs/" + board + "/index%s.html";
 
     // 取得最後幾篇的文章數量(bug?)
-    static Integer loadLastPosts = 2500;
+    static Integer loadLastPosts = 11380;
 
     public static void main(String[] argv) {
+        long startTime = System.currentTimeMillis();
+
 
         // 取得前一頁的index
 //        data sample
@@ -92,7 +86,7 @@ class PttToSqlServer {
             }
         }
 
-
+        System.out.println("Using Time:" + (System.currentTimeMillis() - startTime)/1000/60/60.0 + "hr");
     }
 
     /**
@@ -166,10 +160,11 @@ class PttToSqlServer {
 
             // 取內文
             Elements feedContentEle = feed.select("#main-content.bbs-screen.bbs-content");
-            feedContentEle.select("div,span").remove();
+            feedContentEle.select("div,span,a").remove();
             String feedContent = feedContentEle.text();
 
             articleInfo.clear();
+            articleInfo.add(board);
             articleInfo.add(feedAuthor);
             articleInfo.add(feedTitle);
             articleInfo.add(Integer.toString(feedLikeCount));
@@ -199,10 +194,10 @@ class PttToSqlServer {
                 .getConnection(
                         "jdbc:sqlserver://localhost:1433;databaseName=FinalProjectDB",
                         "sa", "yellow");
-             PreparedStatement pstmt = conn.prepareStatement(" insert into PttArticle (author, title, likeCount, likeCountNoRep, unLikeCount, " +
+             PreparedStatement pstmt = conn.prepareStatement(" insert into PttArticle (board, author, title, likeCount, likeCountNoRep, unLikeCount, " +
                      "unLikeCountNoRep, arrowCount, arrowCountNoRep, replyCountNoRep, feedTime," +
                      "feedContent, feedLikeContent, feedArrowContent, feedUnLikeContent)"
-                     + " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                     + " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         ) {
             int i = 1;
             for (String str2 : productInfo) {
