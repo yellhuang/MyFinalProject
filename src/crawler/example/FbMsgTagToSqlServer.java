@@ -82,8 +82,8 @@ public class FbMsgTagToSqlServer {
                                 // 比對文章時間是否晚於設定抓取的開始時間
                                 if (timeCompare(postCreateTime, postStartTime)) {
 
-                                    // 判斷文章有沒有人留言
-                                    if (postsLev2.size() == 2) { // 無人留言
+                                    // 判斷文章有沒有tag資訊
+                                    if (postsLev2.size() == 2) { // 無tag資訊
 
                                         postId = postsLev2.get(1).text(); // <id>tag
 
@@ -98,7 +98,7 @@ public class FbMsgTagToSqlServer {
                                         }
 //
 //
-                                    } else { // 有人留言
+                                    } else { // 有tag資訊
 
                                         postId = postsLev2.get(2).text(); // <id>tag
 
@@ -185,6 +185,9 @@ public class FbMsgTagToSqlServer {
 
     }
 
+    /**
+     * 把資料存到SQL Server
+     */
     static void insertToSqlServer(List<String> postMsgTagInfo, PreparedStatement pstmt) {
 
         int i = 1;

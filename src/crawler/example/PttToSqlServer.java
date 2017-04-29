@@ -24,6 +24,7 @@ class PttToSqlServer {
     final static String pttMainPage = "https://www.ptt.cc/bbs/" + board + "/index.html";
     final static String pttIndexPage = "https://www.ptt.cc/bbs/" + board + "/index%s.html";
 
+
     // 取得最後幾篇的文章數量(bug?)
     static Integer loadLastPosts = 11380;
 
