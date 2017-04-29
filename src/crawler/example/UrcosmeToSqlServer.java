@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 /**
  * Created by yellow on 2017/4/23.
+ * 爬網頁資訊並批次更新至資料庫
  */
 class UrcosmeToSqlServer {
 
@@ -23,7 +24,13 @@ class UrcosmeToSqlServer {
     final static String byProductIndexPage = "https://www.urcosme.com/find-product/42?page=%s";
     static List<String> productInfo = new ArrayList<>();
 
+    static int countSuccess = 0;
+    static int countFail = 0;
+    static boolean connServerInsert = false;
+
     public static void main(String[] argv) {
+
+        long startTime = System.currentTimeMillis(); // 開始執行時間
 
         // 防曬產品總數量
         Integer loadTotalProduct = Integer.valueOf(getNumbers(CrawlerPack.start()
@@ -54,78 +61,69 @@ class UrcosmeToSqlServer {
         System.out.println("產品名稱, 系列, 品牌(英文), 品牌(中文), 容量, 價格, 平均每ml價格, 上市日期, 產品屬性, 使用心得篇數," +
                 "產品編號, UrCosme指數");
 
-        // 個別分頁每一頁資訊
-        for (String url : lastPostsLink) {
-            try {
-                analyzeFeed(url);
-                Thread.sleep(150); // 重要：為什麼要有這一行？
+        // 連接資料庫
+        try (Connection conn = DriverManager
+                .getConnection(
+                        "jdbc:sqlserver://localhost:1433;databaseName=FinalProjectDB",
+                        "sa", "sa123456");
+             PreparedStatement pstmt = conn.prepareStatement("insert into UrcSunRelateItems (productName,seriesName,brandEnglishName,brandChineseName,capacity,unitPrice,perMlPrice,releaseDate,productAttribute,articleNumber,productID,urCosmeScore) "
+                     + "values (?,?,?,?,?,?,?,?,?,?,?,?)")
+        ) {
 
-            } catch (Exception e) {
-            }
-        }
-    }
+            // 分析防曬產品每一頁資訊
+            for (String url : lastPostsLink) {
 
-    /**
-     * 分析防曬產品每一頁資訊
-     *
-     * @param url
-     * @return
-     */
-    static void analyzeFeed(String url) {
+                // 取得 Jsoup 物件，稍後要做多次 select
+                Document feed =
+                        CrawlerPack.start()
+                                .getFromHtml("https://www.urcosme.com" + url); // 遠端資料格式為 HTML
 
-        try {
+                // 1. 產品名稱
+                String productName = feed.select(".info-tbl div:eq(0) h1").text();
 
-            // 取得 Jsoup 物件，稍後要做多次 select
-            Document feed =
-                    CrawlerPack.start()
-                            .getFromHtml("https://www.urcosme.com" + url); // 遠端資料格式為 HTML
+                // 2. 系列
+                Elements seriesEle = feed.select(".info-tbl div:eq(1) .val");
+                seriesEle.select("div,a").remove();
+                String seriesName = seriesEle.text();
 
-            // 1. 產品名稱
-            String productName = feed.select(".info-tbl div:eq(0) h1").text();
+                // 3. 品牌
+                Elements brandEle = feed.select(".info-tbl div:eq(2) .val");
+                brandEle.select("div,a,br").remove();
+                String[] productNameArray = cutProductName(brandEle.text()).split(",");
+                String brandEnglishName = productNameArray[0];
+                String brandChineseName = productNameArray.length == 2 ? productNameArray[1] : "";
 
-            // 2. 系列
-            Elements seriesEle = feed.select(".info-tbl div:eq(1) .val");
-            seriesEle.select("div,a").remove();
-            String seriesName = seriesEle.text();
+                // 4. 容量
+                String capacity = feed.select(".info-tbl div:eq(3) span").text();
 
-            // 3. 品牌
-            Elements brandEle = feed.select(".info-tbl div:eq(2) .val");
-            brandEle.select("div,a,br").remove();
-            String[] productNameArray = cutProductName(brandEle.text()).split(",");
-            String brandEnglishName = productNameArray[0];
-            String brandChineseName = productNameArray.length == 2 ? productNameArray[1] : "";
+                // 5. 單價
+                String unitPrice = feed.select(".info-tbl div:eq(4) span").text();
 
-            // 4. 容量
-            String capacity = feed.select(".info-tbl div:eq(3) span").text();
+                // 6. 平均每ml價格
+                Float perMlPrice;
+                if (calculator(unitPrice, capacity) != 0) {
+                    perMlPrice = capacity.contains("/") ?
+                            minAva(unitPrice, capacity) : calculator(unitPrice, capacity);
+                } else {
+                    perMlPrice = 0.0f;
+                }
 
-            // 5. 單價
-            String unitPrice = feed.select(".info-tbl div:eq(4) span").text();
+                // 7. 上市日期
+                String releaseDate = feed.select(".info-tbl div:eq(5) span").text();
 
-            // 6. 平均每ml價格
-            Float perMlPrice;
-            if (calculator(unitPrice, capacity) != 0) {
-                perMlPrice = capacity.contains("/") ?
-                        minAva(unitPrice, capacity) : calculator(unitPrice, capacity);
-            } else {
-                perMlPrice = 0.0f;
-            }
+                // 8. 上市日期
+                String productAttribute = feed.select(".info-tbl .val a:eq(0)").text();
 
-            // 7. 上市日期
-            String releaseDate = feed.select(".info-tbl div:eq(5) span").text();
+                // 9. 使用心得篇數
+                String articleNumber = getNumbers(
+                        feed.select(".menu-item.v-align-middle.menu-item-current a").text());
 
-            // 8. 上市日期
-            String productAttribute = feed.select(".info-tbl .val a:eq(0)").text();
+                // 10. 產品編號
+                Elements productIDEle = feed.select(".menu-item.v-align-middle.menu-item-current a");
+                String productID = getNumbers(productIDEle.get(0).attr("href"));
 
-            // 9. 使用心得篇數
-            String articleNumber = getNumbers(
-                    feed.select(".menu-item.v-align-middle.menu-item-current a").text());
-
-            // 10. 產品編號
-            Elements productIDEle = feed.select(".menu-item.v-align-middle.menu-item-current a");
-            String productID = getNumbers(productIDEle.get(0).attr("href"));
-
-            // 11. UrCosme指數
-            String urCosmeScore = feed.select(".deg .text").text().substring(10, 13);
+                // 11. UrCosme指數
+                String urCosmeScore = feed.select(".deg .text").text().substring(10, 13);
 
 //            String output = productName + ", "
 //                    + seriesName + ", "
@@ -142,50 +140,72 @@ class UrcosmeToSqlServer {
 //            System.out.println(output);
 
 
-            productInfo.clear();
-            productInfo.add(productName);
-            productInfo.add(seriesName);
-            productInfo.add(brandEnglishName);
-            productInfo.add(brandChineseName);
-            productInfo.add(capacity);
-            productInfo.add(unitPrice);
-            productInfo.add(Float.toString(perMlPrice));
-            productInfo.add(releaseDate);
-            productInfo.add(productAttribute);
-            productInfo.add(articleNumber);
-            productInfo.add(productID);
-            productInfo.add(urCosmeScore);
-            insertToSqlServer(productInfo);
+                productInfo.clear();
+                productInfo.add(productName);
+                productInfo.add(seriesName);
+                productInfo.add(brandEnglishName);
+                productInfo.add(brandChineseName);
+                productInfo.add(capacity);
+                productInfo.add(unitPrice);
+                productInfo.add(Float.toString(perMlPrice));
+                productInfo.add(releaseDate);
+                productInfo.add(productAttribute);
+                productInfo.add(articleNumber);
+                productInfo.add(productID);
+                productInfo.add(urCosmeScore);
+                insertToSqlServer(productInfo, pstmt);
+
+                if (countSuccess % 100 == 0)
+                    connServerInsert = true;
+
+                Thread.sleep(150); // 睡一下
+
+            }
+
+            pstmt.executeBatch();
+            pstmt.clearBatch();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            countFail++;
         }
 
+        // 顯示程式執行時間
+        System.out.println("Using Time:" + (System.currentTimeMillis() - startTime) / 1000 / 60 / 60.0 + "hr");
+        // 顯示執行失敗筆數
+        System.out.println("countFail:" + countFail);
     }
 
-    // 新增到資料庫
-    static void insertToSqlServer(List<String> productInfo) {
+    /**
+     * 把資料存到SQL Server
+     */
+    static void insertToSqlServer(List<String> postMsgTagInfo, PreparedStatement pstmt) {
 
-        try (Connection conn = DriverManager
-                .getConnection(
-                        "jdbc:sqlserver://localhost:1433;databaseName=FinalProjectDB",
-                        "sa", "yellow");
-             PreparedStatement pstmt = conn.prepareStatement("insert into SunProtectionProduct (productName,seriesName,brandEnglishName,brandChineseName,capacity,unitPrice,perMlPrice,releaseDate,productAttribute,articleNumber,productID,urCosmeScore) "
-                     + "values (?,?,?,?,?,?,?,?,?,?,?,?)")
-        ) {
-            int i = 1;
-            for (String str2 : productInfo) {
+        int i = 1;
+
+        try {
+
+            for (String str2 : postMsgTagInfo) {
                 pstmt.setString(i, str2);
                 i++;
             }
 
-            pstmt.execute();
+            pstmt.addBatch();
             pstmt.clearParameters();
-            System.out.println("新增成功");
+
+            if (connServerInsert) {
+                pstmt.executeBatch();
+                pstmt.clearBatch();
+                connServerInsert = false;
+            }
+
+            countSuccess++;
+            System.out.println("第 " + countSuccess + " 筆新增成功");
 
         } catch (SQLException e) {
             e.printStackTrace();
+            countFail++;
         }
+
     }
 
     //　取字串中的數字

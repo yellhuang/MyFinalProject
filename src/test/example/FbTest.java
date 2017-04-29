@@ -13,7 +13,7 @@ import java.util.List;
  * Created by yellow on 2017/4/27.
  * 爬FB粉絲團每篇文章底下的留言資訊
  */
-public class TestFB5 {
+public class FbTest {
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> msgTagInfo = new ArrayList<>();

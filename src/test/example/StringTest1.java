@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 /**
  * Created by yellow on 2017/4/19.
+ * 字串處理
  */
 
 class StringTest1 {
@@ -15,44 +16,37 @@ class StringTest1 {
     public static void main(String[] args) throws Exception {
         String capacity = "150ml";
         String unitPrice = "NT $1000";
-        String str = "說6.1說";
-//        System.out.println(calculator(unitPrice, capacity));
-//        System.out.println(getNumbers(str));
+        String str1 = "說6.1說";
+        System.out.println(calculator(unitPrice, capacity));
+        System.out.println(getNumbers(str1));
 
-//        String str2 = "NT$ 300/550";
-//        String str3 = "80ml/150ml";
-//        System.out.println(minAva(str2, str3));
+        String str2 = "NT$ 300/550";
+        String str3 = "80ml/150ml";
+        System.out.println(minAva(str2, str3));
 
-//        String str4 = "300550";
-//        System.out.println(str4.contains("/"));
+        String str4 = "300550";
+        System.out.println(str4.contains("/"));
 
-//        String str5 = "天天";
-//        String[] productNameArray = cutProductName(str5).split(",");
-//        for (int i=0; i < productNameArray.length; i++) {
-//            System.out.println(productNameArray[i]);
-//        }
+        String str5 = "天天";
+        String[] productNameArray = cutProductName(str5).split(",");
+        for (int i=0; i < productNameArray.length; i++) {
+            System.out.println(productNameArray[i]);
+        }
 
+        List<String> collector = new ArrayList<>();
+        collector.add("A");
+        collector.add("B");
+        collector.add("");
+        collector.add("C");
+//        System.out.println(collector.size()); // 4
+        for (String i : collector) {
+            System.out.println(i);
+        }
+        collector.clear();
+        System.out.println(collector.size());
 
-//        List<String> collector = new ArrayList<>();
-//        collector.add("A");
-//        collector.add("B");
-//        collector.add("");
-//        collector.add("C");
-////        System.out.println(collector.size()); // 4
-//
-//        for (String i : collector) {
-//            System.out.println(i);
-//        }
-//
-//        collector.clear();
-//        System.out.println(collector.size());
-
-
-        String  a = "   天 天 天     ";
-        System.out.println(a.trim());
-
-        String  b = "";
-        System.out.println(a.trim());
+        String  str6 = "   天 天 天     ";
+        System.out.println(str6.trim());
     }
 
     // 分割中文字及英文字

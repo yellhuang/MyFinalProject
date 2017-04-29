@@ -14,7 +14,7 @@ import java.util.*;
 
 /**
  * Created by yellow on 2017/4/27.
- * 爬FB粉絲團每篇文章底下的留言資訊並更新至資料庫
+ * 爬FB粉絲團每篇文章底下的留言資訊並批次更新至資料庫
  */
 public class FbCommentInfoToSqlServer {
 

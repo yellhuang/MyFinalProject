@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * Created by yellow on 2017/4/28.
- * 取粉絲團發布的文章Tag資訊並新增至資料庫
+ * 取粉絲團發布的文章Tag資訊並批次新增至資料庫
  */
 public class FbMsgTagToSqlServer {
 

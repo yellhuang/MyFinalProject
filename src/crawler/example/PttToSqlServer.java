@@ -18,12 +18,16 @@ import java.util.List;
  * Created by yellow on 2017/4/23.
  */
 class PttToSqlServer {
+
     static List<String> articleInfo = new ArrayList<>();
-    static int count = 1;
-    final static String board = "MakeUp";
+
+    final static String board = "MakeUp"; // ptt版名
     final static String pttMainPage = "https://www.ptt.cc/bbs/" + board + "/index.html";
     final static String pttIndexPage = "https://www.ptt.cc/bbs/" + board + "/index%s.html";
 
+    static int countSuccess = 0;
+    static int countFail = 0;
+    static boolean connServerInsert = false;
 
     // 取得最後幾篇的文章數量(bug?)
     static Integer loadLastPosts = 11380;
@@ -76,148 +80,152 @@ class PttToSqlServer {
 
         System.out.println("作者,標題,推總數,不重複推,噓總數,不重複噓,→總數,不重複→,總參與人數");
 
-        // 個別分頁每一頁資訊
-        for (String url : lastPostsLink) {
-
-            try {
-                analyzeFeed(url);
-                Thread.sleep(150); // 重要：為什麼要有這一行？
-
-            } catch (Exception e) {
-            }
-        }
-
-        System.out.println("Using Time:" + (System.currentTimeMillis() - startTime)/1000/60/60.0 + "hr");
-    }
-
-    /**
-     * 分析輸入的文章，簡易統計
-     *
-     * @param url
-     * @return
-     */
-    static void analyzeFeed(String url) {
-
-        try {
-
-            // 取得 Jsoup 物件，稍後要做多次 select
-            Document feed =
-                    CrawlerPack.start()
-//                            .addCookie("over18", "1")                // 八卦版進入需要設定cookie
-                            .getFromHtml("https://www.ptt.cc" + url);           // 遠端資料格式為 HTML
-
-
-
-
-            // 1. 文章作者
-            String feedAuthor = feed.select("span:contains(作者) + span").text();
-
-            // 2. 文章標題
-            String feedTitle = feed.select("span:contains(標題) + span").text();
-
-
-            // 3. 按推總數
-            Integer feedLikeCount =
-                    countReply(feed.select(".push-tag:matchesOwn(推) + .push-userid"));
-
-            // 4. 不重複推文數
-            Integer feedLikeCountNoRep =
-                    countReplyNoRepeat(feed.select(".push-tag:matchesOwn(推) + .push-userid"));
-
-            // 5. 按噓總數
-            Integer feedUnLikeCount =
-                    countReply(feed.select(".push-tag:matchesOwn(噓) + .push-userid"));
-
-            // 6. 不重複噓文數
-            Integer feedUnLikeCountNoRep =
-                    countReplyNoRepeat(feed.select(".push-tag:matchesOwn(噓) + .push-userid"));
-
-            // 5. 按→總數
-            Integer feedArrowCount =
-                    countReply(feed.select(".push-tag:matchesOwn(→) + .push-userid"));
-
-            // 6. 不重複→數
-            Integer feedArrowCountNoRep =
-                    countReplyNoRepeat(feed.select(".push-tag:matchesOwn(→) + .push-userid"));
-
-            // 7. 總參與人數
-            Integer feedReplyCountNoRep =
-                    countReplyNoRepeat(feed.select(".push-tag + .push-userid"));
-
-            // 發文時間
-            String feedTime =
-                    feed.select(".bbs-screen.bbs-content div:eq(3) span:eq(1)").text();
-
-            // 推 內容
-            String feedLikeContent =
-                    feed.select(".push-tag:matchesOwn(推)+span+span").text();
-
-            // → 內容
-            String feedArrowContent =
-                    feed.select(".push-tag:matchesOwn(→)+span+span").text();
-            // 噓 內容
-            String feedUnLikeContent =
-                    feed.select(".push-tag:matchesOwn(噓)+span+span").text();
-
-            // 取內文
-            Elements feedContentEle = feed.select("#main-content.bbs-screen.bbs-content");
-            feedContentEle.select("div,span,a").remove();
-            String feedContent = feedContentEle.text();
-
-            articleInfo.clear();
-            articleInfo.add(board);
-            articleInfo.add(feedAuthor);
-            articleInfo.add(feedTitle);
-            articleInfo.add(Integer.toString(feedLikeCount));
-            articleInfo.add(Integer.toString(feedLikeCountNoRep));
-            articleInfo.add(Integer.toString(feedUnLikeCount));
-            articleInfo.add(Integer.toString(feedUnLikeCountNoRep));
-            articleInfo.add(Integer.toString(feedArrowCount));
-            articleInfo.add(Integer.toString(feedArrowCountNoRep));
-            articleInfo.add(Integer.toString(feedReplyCountNoRep));
-            articleInfo.add(feedTime);
-            articleInfo.add(feedContent);
-            articleInfo.add(feedLikeContent);
-            articleInfo.add(feedArrowContent);
-            articleInfo.add(feedUnLikeContent);
-            insertToSqlServer(articleInfo);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-    }
-
-    static void insertToSqlServer(List<String> productInfo) {
 
         try (Connection conn = DriverManager
                 .getConnection(
                         "jdbc:sqlserver://localhost:1433;databaseName=FinalProjectDB",
-                        "sa", "yellow");
+                        "sa", "sa123456");
              PreparedStatement pstmt = conn.prepareStatement(" insert into PttArticle (board, author, title, likeCount, likeCountNoRep, unLikeCount, " +
                      "unLikeCountNoRep, arrowCount, arrowCountNoRep, replyCountNoRep, feedTime," +
                      "feedContent, feedLikeContent, feedArrowContent, feedUnLikeContent)"
                      + " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         ) {
-            int i = 1;
-            for (String str2 : productInfo) {
+
+            // 個別分頁每一頁資訊
+            for (String url : lastPostsLink) {
+
+                // 取得 Jsoup 物件，稍後要做多次 select
+                Document feed =
+                        CrawlerPack.start()
+//                            .addCookie("over18", "1")                // 八卦版進入需要設定cookie
+                                .getFromHtml("https://www.ptt.cc" + url);           // 遠端資料格式為 HTML
+
+
+                // 1. 文章作者
+                String feedAuthor = feed.select("span:contains(作者) + span").text();
+
+                // 2. 文章標題
+                String feedTitle = feed.select("span:contains(標題) + span").text();
+
+
+                // 3. 按推總數
+                Integer feedLikeCount =
+                        countReply(feed.select(".push-tag:matchesOwn(推) + .push-userid"));
+
+                // 4. 不重複推文數
+                Integer feedLikeCountNoRep =
+                        countReplyNoRepeat(feed.select(".push-tag:matchesOwn(推) + .push-userid"));
+
+                // 5. 按噓總數
+                Integer feedUnLikeCount =
+                        countReply(feed.select(".push-tag:matchesOwn(噓) + .push-userid"));
+
+                // 6. 不重複噓文數
+                Integer feedUnLikeCountNoRep =
+                        countReplyNoRepeat(feed.select(".push-tag:matchesOwn(噓) + .push-userid"));
+
+                // 5. 按→總數
+                Integer feedArrowCount =
+                        countReply(feed.select(".push-tag:matchesOwn(→) + .push-userid"));
+
+                // 6. 不重複→數
+                Integer feedArrowCountNoRep =
+                        countReplyNoRepeat(feed.select(".push-tag:matchesOwn(→) + .push-userid"));
+
+                // 7. 總參與人數
+                Integer feedReplyCountNoRep =
+                        countReplyNoRepeat(feed.select(".push-tag + .push-userid"));
+
+                // 發文時間
+                String feedTime =
+                        feed.select(".bbs-screen.bbs-content div:eq(3) span:eq(1)").text();
+
+                // 推 內容
+                String feedLikeContent =
+                        feed.select(".push-tag:matchesOwn(推)+span+span").text();
+
+                // → 內容
+                String feedArrowContent =
+                        feed.select(".push-tag:matchesOwn(→)+span+span").text();
+                // 噓 內容
+                String feedUnLikeContent =
+                        feed.select(".push-tag:matchesOwn(噓)+span+span").text();
+
+                // 取內文
+                Elements feedContentEle = feed.select("#main-content.bbs-screen.bbs-content");
+                feedContentEle.select("div,span,a").remove();
+                String feedContent = feedContentEle.text();
+
+                articleInfo.clear();
+                articleInfo.add(board);
+                articleInfo.add(feedAuthor);
+                articleInfo.add(feedTitle);
+                articleInfo.add(Integer.toString(feedLikeCount));
+                articleInfo.add(Integer.toString(feedLikeCountNoRep));
+                articleInfo.add(Integer.toString(feedUnLikeCount));
+                articleInfo.add(Integer.toString(feedUnLikeCountNoRep));
+                articleInfo.add(Integer.toString(feedArrowCount));
+                articleInfo.add(Integer.toString(feedArrowCountNoRep));
+                articleInfo.add(Integer.toString(feedReplyCountNoRep));
+                articleInfo.add(feedTime);
+                articleInfo.add(feedContent);
+                articleInfo.add(feedLikeContent);
+                articleInfo.add(feedArrowContent);
+                articleInfo.add(feedUnLikeContent);
+                insertToSqlServer(articleInfo, pstmt);
+
+                if (countSuccess % 1000 == 0)
+                    connServerInsert = true;
+
+                Thread.sleep(150); // 睡一下
+
+            }
+
+            pstmt.executeBatch();
+            pstmt.clearBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            countFail++;
+        }
+
+        // 顯示程式執行時間
+        System.out.println("Using Time:" + (System.currentTimeMillis() - startTime) / 1000 / 60 / 60.0 + "hr");
+        // 顯示執行失敗筆數
+        System.out.println("countFail:" + countFail);
+    }
+
+    /**
+     * 把資料存到SQL Server
+     */
+    static void insertToSqlServer(List<String> postMsgTagInfo, PreparedStatement pstmt) {
+
+        int i = 1;
+
+        try {
+
+            for (String str2 : postMsgTagInfo) {
                 pstmt.setString(i, str2);
                 i++;
             }
 
-            pstmt.execute();
+            pstmt.addBatch();
             pstmt.clearParameters();
-            System.out.println("第 "+ count +" 筆新增成功");
-            count++;
+
+            if (connServerInsert) {
+                pstmt.executeBatch();
+                pstmt.clearBatch();
+                connServerInsert = false;
+            }
+
+            countSuccess++;
+            System.out.println("第 " + countSuccess + " 筆新增成功");
 
         } catch (SQLException e) {
             e.printStackTrace();
-            for (String str2 : productInfo) {
-                System.out.print(str2 + ", ");
-            }
-            System.out.println();
+            countFail++;
         }
+
     }
 
     /**
