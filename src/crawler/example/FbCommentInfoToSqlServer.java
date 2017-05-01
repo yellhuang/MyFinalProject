@@ -19,7 +19,7 @@ import java.util.*;
 public class FbCommentInfoToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-    static String postStartTime = "2017-03-28";
+    static String postStartTime = "2017-04-01";
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> postComentInfo = new ArrayList<>();
@@ -34,8 +34,8 @@ public class FbCommentInfoToSqlServer {
         long startTime = System.currentTimeMillis(); // 開始執行時間
         String token = "118580478686560%7COf5Y7jVzJx_qbhiLKWc1v7qD9cM"; // App Token
 
-        loadFanClubId(); // 載入所有粉絲團ID
-//        fanclubList.add("UrCosme");
+//        loadFanClubId(); // 載入所有粉絲團ID
+        fanclubList.add("UrCosme");
 
         // 連接資料庫
         try (Connection conn = DriverManager
@@ -55,7 +55,7 @@ public class FbCommentInfoToSqlServer {
                     // Facebook API 查詢條件
                     String uri =
                             "https://graph.facebook.com/v2.8"
-                                    + "/" + fanClubId + "?fields="
+                                    + "/" + fanClubId.trim() + "?fields="
                                     + URLEncoder.encode("posts{created_time,comments{created_time,from,message}}", "UTF-8")
                                     + "&access_token=" + token;
 

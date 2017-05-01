@@ -2,6 +2,7 @@ package crawler.example;
 
 import com.github.abola.crawler.CrawlerPack;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.UnsupportedEncodingException;
@@ -15,15 +16,15 @@ import java.util.List;
 
 /**
  * Created by yellow on 2017/4/28.
- * 取粉絲團發布的文章Tag資訊並批次新增至資料庫
+ * 取粉絲團發布的文章基本資訊並批次新增至資料庫
  */
-public class FbMsgTagToSqlServer {
+public class FbPostBaseInfoToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     static String postStartTime = "2017-04-01";
 
     static List<String> fanclubList = new ArrayList<>();
-    static List<String> postMsgTagInfo = new ArrayList<>();
+    static List<String> postBaseInfo = new ArrayList<>();
 
     static int countSuccess = 0;
     static int countFail = 0;
@@ -34,16 +35,16 @@ public class FbMsgTagToSqlServer {
         long startTime = System.currentTimeMillis(); // 開始執行時間
         String token = "118580478686560%7COf5Y7jVzJx_qbhiLKWc1v7qD9cM"; // App Token
 
-//        loadFanClubId(); // 載入所有粉絲團ID
-        fanclubList.add("PopDailyTW");
+        loadFanClubId(); // 載入所有粉絲團ID
+//        fanclubList.add("PopDailyTW");
 
         // 連接資料庫
         try (Connection conn = DriverManager
                 .getConnection(
                         "jdbc:sqlserver://localhost:1433;databaseName=FinalProjectDB",
                         "sa", "sa123456");
-             PreparedStatement pstmt = conn.prepareStatement(" insert into FbPostsMsgTag (postId, msgTagId, msgTagName)"
-                     + "values (?, ?, ?)")
+             PreparedStatement pstmt = conn.prepareStatement(" insert into PostsBaseInfo (fanClubId, postId, postTime, postName, postMsg)"
+                     + "values (?, ?, ?, ?, ?)")
         ) {
 
             // 一筆一筆取粉絲團ID
@@ -56,17 +57,17 @@ public class FbMsgTagToSqlServer {
                     String uri =
                             "https://graph.facebook.com/v2.8"
                                     + "/" + fanClubId.trim() + "?fields="
-                                    + URLEncoder.encode("posts{created_time,message_tags}", "UTF-8")
+                                    + URLEncoder.encode("posts{message,created_time,name}", "UTF-8")
                                     + "&access_token=" + token;
 
                     Document elems = CrawlerPack.start().getFromJson(uri);
 
                     Elements elePosts = elems.child(1).children(); // 取<post>tag
                     Elements nextPage;
-                    String postId;
                     String postCreateTime;
-                    String msgTagsName;
-                    String msgTagsId;
+                    String postId;
+                    String postName;
+                    String postMsg;
 
                     OuterLoop:
                     while (true) { // 讀取每篇文章
@@ -75,47 +76,28 @@ public class FbMsgTagToSqlServer {
 
                             for (int i = 0; i < elePosts.size() - 1; i++) {  // 一筆一筆取<post>_<data>tag (每頁最多顯示25篇)
 
-                                // 取<post>_<data>_<created_time>tag、<message_tags>tag, <id>tag
-                                Elements postsLev2 = elePosts.get(i).children();
+                                // 取<post>_<data>_<created_time>tag、<name>tag、<id>tag、<message>tag
+                                Element postsLev2 = elePosts.get(i);
 
-                                postCreateTime = formatTime(postsLev2.get(0).text()); // <created_time>tag
+                                postCreateTime = formatTime(postsLev2.getElementsByTag("created_time").text()); // <created_time>tag
                                 // 比對文章時間是否晚於設定抓取的開始時間
                                 if (timeCompare(postCreateTime, postStartTime)) {
 
-                                    // 判斷文章有沒有tag資訊
-                                    if (postsLev2.size() == 2) { // 無tag資訊
+                                    postId = postsLev2.getElementsByTag("id").text(); // <id>tag
+                                    // 判斷文章是否還存在
+                                    if (checkPostId(postId)) {
+                                        postName = postsLev2.getElementsByTag("name").text(); // <name>tag
+                                        postMsg = postsLev2.getElementsByTag("message").text();  // <message>tag
 
-                                        postId = postsLev2.get(1).text(); // <id>tag
+//                                        System.out.print(fanClubId.trim() + "," + postCreateTime + ", " + postId + ", " + postName + ", " + postMsg + "\n");
+                                        postBaseInfo.clear();
+                                        postBaseInfo.add(fanClubId.trim());
+                                        postBaseInfo.add(postId);
+                                        postBaseInfo.add(postCreateTime);
+                                        postBaseInfo.add(postName);
+                                        postBaseInfo.add(postMsg);
+                                        insertToSqlServer(postBaseInfo, pstmt);
 
-                                        // 判斷文章是否還存在
-                                        if (checkPostId(postId)) {
-//                                        System.out.println(postCreateTime + ", " + postId);
-                                            postMsgTagInfo.clear();
-                                            postMsgTagInfo.add(postId);
-                                            postMsgTagInfo.add("");
-                                            postMsgTagInfo.add("");
-                                            insertToSqlServer(postMsgTagInfo, pstmt);
-                                        }
-//
-//
-                                    } else { // 有tag資訊
-
-                                        postId = postsLev2.get(2).text(); // <id>tag
-
-                                        // 判斷文章是否還存在
-                                        if (checkPostId(postId)) {
-
-                                            Elements eleMsgTag = postsLev2.get(1).children();
-                                            msgTagsName = eleMsgTag.get(1).text(); // <id>tag
-                                            msgTagsId = eleMsgTag.get(3).text();
-
-//                                    System.out.print(postCreateTime + ", " + postId + ", " + msgTagsId + ", " + msgTagsName + "\n");
-                                            postMsgTagInfo.clear();
-                                            postMsgTagInfo.add(postId);
-                                            postMsgTagInfo.add(msgTagsId);
-                                            postMsgTagInfo.add(msgTagsName);
-                                            insertToSqlServer(postMsgTagInfo, pstmt);
-                                        }
                                     }
 
                                 } else
