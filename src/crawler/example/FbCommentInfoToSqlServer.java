@@ -19,7 +19,8 @@ import java.util.*;
 public class FbCommentInfoToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-    static String postStartTime = "2017-04-01";
+    static String postStartTime = "2017-04-25";
+    static String postEndTime = "2017-04-30";
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> postComentInfo = new ArrayList<>();
@@ -83,8 +84,8 @@ public class FbCommentInfoToSqlServer {
 
 
                                 postCreateTime = formatTime(postsLev2.get(0).text());
-                                // 比對文章時間是否晚於設定抓取的開始時間
-                                if (timeCompare(postCreateTime, postStartTime)) {
+                                // 比對文章時間是否在某區間
+                                if (timeCompare(postCreateTime, postStartTime, postEndTime)) {
 
                                     // 判斷文章有沒有人留言
                                     if (postsLev2.size() == 2) { // 無人留言
@@ -93,14 +94,14 @@ public class FbCommentInfoToSqlServer {
 
                                         // 判斷文章是否還存在
                                         if (checkPostId(postId)) {
-//                                    System.out.println(postCreateTime + ", " + postId);
-                                            postComentInfo.clear();
-                                            postComentInfo.add(postId);
-                                            postComentInfo.add("");
-                                            postComentInfo.add("");
-                                            postComentInfo.add("");
-                                            postComentInfo.add("");
-                                            insertToSqlServer(postComentInfo, pstmt);
+                                    System.out.println(postCreateTime + ", " + postId);
+//                                            postComentInfo.clear();
+//                                            postComentInfo.add(postId);
+//                                            postComentInfo.add("");
+//                                            postComentInfo.add("");
+//                                            postComentInfo.add("");
+//                                            postComentInfo.add("");
+//                                            insertToSqlServer(postComentInfo, pstmt);
                                         }
 //
                                     } else { // 有人留言
@@ -121,14 +122,14 @@ public class FbCommentInfoToSqlServer {
                                                     commentName = eleComments.get(j).getElementsByTag("name").text();
                                                     commentMessage = eleComments.get(j).getElementsByTag("message").text();
                                                     commentTime = formatTime(eleComments.get(j).getElementsByTag("created_time").text());
-//                                            System.out.print(postCreateTime + ", " + postId + ", " + commentName + ", " + commentId + ", " + commentTime + ", " + commentMessage + "\n");
-                                                    postComentInfo.clear();
-                                                    postComentInfo.add(postId);
-                                                    postComentInfo.add(commentId);
-                                                    postComentInfo.add(commentName);
-                                                    postComentInfo.add(commentMessage);
-                                                    postComentInfo.add(commentTime);
-                                                    insertToSqlServer(postComentInfo, pstmt);
+                                            System.out.print(postCreateTime + ", " + postId + ", " + commentName + ", " + commentId + ", " + commentTime + ", " + commentMessage + "\n");
+//                                                    postComentInfo.clear();
+//                                                    postComentInfo.add(postId);
+//                                                    postComentInfo.add(commentId);
+//                                                    postComentInfo.add(commentName);
+//                                                    postComentInfo.add(commentMessage);
+//                                                    postComentInfo.add(commentTime);
+//                                                    insertToSqlServer(postComentInfo, pstmt);
                                                 }
 
                                                 // Comment換頁
@@ -143,6 +144,8 @@ public class FbCommentInfoToSqlServer {
                                             }
                                         }
                                     }
+
+                                } else if (timeCompare(postCreateTime, postStartTime)) { // 比對目前文章時間是否晚於設定抓取的開始時間
 
                                 } else
                                     break OuterLoop;
@@ -265,6 +268,25 @@ public class FbCommentInfoToSqlServer {
         } catch (ParseException e) {
             e.printStackTrace();
             countFail++;
+        }
+
+        return result;
+    }
+
+    /**
+     * 比對文章時間是否在我要的區間
+     */
+    static Boolean timeCompare(String postTime, String startTime, String endTime) {
+        Boolean result = true;
+
+        try {
+            java.util.Date post = df.parse(postTime);
+            java.util.Date start = df.parse(startTime);
+            java.util.Date end = df.parse(endTime);
+            result = post.compareTo(start) >= 0 && post.compareTo(end) <= 0 ? true : false;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
 
         return result;

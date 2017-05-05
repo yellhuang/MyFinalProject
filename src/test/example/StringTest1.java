@@ -1,5 +1,8 @@
 package test.example;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,6 +50,7 @@ class StringTest1 {
 
         String  str6 = "   天 天 天     ";
         System.out.println(str6.trim());
+
     }
 
     // 分割中文字及英文字
@@ -99,6 +103,8 @@ class StringTest1 {
         }
         return "";
     }
+
+
 
 }
 

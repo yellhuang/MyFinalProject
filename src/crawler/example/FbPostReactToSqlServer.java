@@ -20,7 +20,8 @@ import java.util.List;
 public class FbPostReactToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-    static String postStartTime = "2017-04-01";
+    static String postStartTime = "2017-04-30";
+    static String postEndTime = "2017-04-30";
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> postReactInfo = new ArrayList<>();
@@ -35,8 +36,8 @@ public class FbPostReactToSqlServer {
         long startTime = System.currentTimeMillis(); // 開始執行時間
         String token = "118580478686560%7COf5Y7jVzJx_qbhiLKWc1v7qD9cM"; // App Token
 
-        loadFanClubId(); // 載入所有粉絲團ID
-//        fanclubList.add("PopDailyTW");
+//        loadFanClubId(); // 載入所有粉絲團ID
+        fanclubList.add("PopDailyTW");
 
         // 連接資料庫
         try (Connection conn = DriverManager
@@ -82,8 +83,8 @@ public class FbPostReactToSqlServer {
                                 Elements postsLev2 = elePosts.get(i).children();
 
                                 postCreateTime = formatTime(postsLev2.get(0).text());
-                                // 比對文章時間是否晚於設定抓取的開始時間
-                                if (timeCompare(postCreateTime, postStartTime)) {
+                                // 比對文章時間是否在某區間
+                                if (timeCompare(postCreateTime, postStartTime, postEndTime)) {
 
                                     // 判斷文章有沒有人留言
                                     if (postsLev2.size() == 2) { // 無人留言
@@ -92,13 +93,13 @@ public class FbPostReactToSqlServer {
 
                                         // 判斷文章是否還存在
                                         if (checkPostId(postId)) {
-//                                    System.out.println(postCreateTime + ", " + postId);
-                                            postReactInfo.clear();
-                                            postReactInfo.add(postId);
-                                            postReactInfo.add("");
-                                            postReactInfo.add("");
-                                            postReactInfo.add("");
-                                            insertToSqlServer(postReactInfo, pstmt);
+                                    System.out.println(postCreateTime + ", " + postId);
+//                                            postReactInfo.clear();
+//                                            postReactInfo.add(postId);
+//                                            postReactInfo.add("");
+//                                            postReactInfo.add("");
+//                                            postReactInfo.add("");
+//                                            insertToSqlServer(postReactInfo, pstmt);
                                         }
 //
                                     } else { // 有人留言
@@ -118,13 +119,13 @@ public class FbPostReactToSqlServer {
                                                     reactId = tempId[0];
                                                     reactName = eleReacts.get(j).getElementsByTag("name").text();
                                                     reactType = eleReacts.get(j).getElementsByTag("type").text();
-//                                            System.out.print(postCreateTime + ", " + postId + ", " + reactId + ", " + reactName + ", " + reactType + "\n");
-                                                    postReactInfo.clear();
-                                                    postReactInfo.add(postId);
-                                                    postReactInfo.add(reactId);
-                                                    postReactInfo.add(reactName);
-                                                    postReactInfo.add(reactType);
-                                                    insertToSqlServer(postReactInfo, pstmt);
+                                            System.out.print(postCreateTime + ", " + postId + ", " + reactId + ", " + reactName + ", " + reactType + "\n");
+//                                                    postReactInfo.clear();
+//                                                    postReactInfo.add(postId);
+//                                                    postReactInfo.add(reactId);
+//                                                    postReactInfo.add(reactName);
+//                                                    postReactInfo.add(reactType);
+//                                                    insertToSqlServer(postReactInfo, pstmt);
                                                 }
 
                                                 // Comment換頁
@@ -139,6 +140,8 @@ public class FbPostReactToSqlServer {
                                             }
                                         }
                                     }
+
+                                } else if (timeCompare(postCreateTime, postStartTime)) { // 比對目前文章時間是否晚於設定抓取的開始時間
 
                                 } else
                                     break OuterLoop;
@@ -261,6 +264,25 @@ public class FbPostReactToSqlServer {
         } catch (ParseException e) {
             e.printStackTrace();
             countFail++;
+        }
+
+        return result;
+    }
+
+    /**
+     * 比對文章時間是否在我要的區間
+     */
+    static Boolean timeCompare(String postTime, String startTime, String endTime) {
+        Boolean result = true;
+
+        try {
+            java.util.Date post = df.parse(postTime);
+            java.util.Date start = df.parse(startTime);
+            java.util.Date end = df.parse(endTime);
+            result = post.compareTo(start) >= 0 && post.compareTo(end) <= 0 ? true : false;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
 
         return result;

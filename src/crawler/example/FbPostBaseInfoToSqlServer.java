@@ -22,6 +22,7 @@ public class FbPostBaseInfoToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     static String postStartTime = "2017-04-01";
+    static String postEndTime = "2017-04-30";
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> postBaseInfo = new ArrayList<>();
@@ -35,8 +36,8 @@ public class FbPostBaseInfoToSqlServer {
         long startTime = System.currentTimeMillis(); // 開始執行時間
         String token = "118580478686560%7COf5Y7jVzJx_qbhiLKWc1v7qD9cM"; // App Token
 
-        loadFanClubId(); // 載入所有粉絲團ID
-//        fanclubList.add("PopDailyTW");
+//        loadFanClubId(); // 載入所有粉絲團ID
+        fanclubList.add("PopDailyTW");
 
         // 連接資料庫
         try (Connection conn = DriverManager
@@ -47,6 +48,7 @@ public class FbPostBaseInfoToSqlServer {
                      + "values (?, ?, ?, ?, ?)")
         ) {
 
+//            for(int x=113; x<fanclubList.size();x++){
             // 一筆一筆取粉絲團ID
             for (String fanClubId : fanclubList) {
 //            System.out.println("ID.=" + fanClubName);
@@ -80,8 +82,8 @@ public class FbPostBaseInfoToSqlServer {
                                 Element postsLev2 = elePosts.get(i);
 
                                 postCreateTime = formatTime(postsLev2.getElementsByTag("created_time").text()); // <created_time>tag
-                                // 比對文章時間是否晚於設定抓取的開始時間
-                                if (timeCompare(postCreateTime, postStartTime)) {
+                                // 比對文章時間是否在某區間
+                                if (timeCompare(postCreateTime, postStartTime, postEndTime)) {
 
                                     postId = postsLev2.getElementsByTag("id").text(); // <id>tag
                                     // 判斷文章是否還存在
@@ -89,19 +91,22 @@ public class FbPostBaseInfoToSqlServer {
                                         postName = postsLev2.getElementsByTag("name").text(); // <name>tag
                                         postMsg = postsLev2.getElementsByTag("message").text();  // <message>tag
 
-//                                        System.out.print(fanClubId.trim() + "," + postCreateTime + ", " + postId + ", " + postName + ", " + postMsg + "\n");
-                                        postBaseInfo.clear();
-                                        postBaseInfo.add(fanClubId.trim());
-                                        postBaseInfo.add(postId);
-                                        postBaseInfo.add(postCreateTime);
-                                        postBaseInfo.add(postName);
-                                        postBaseInfo.add(postMsg);
-                                        insertToSqlServer(postBaseInfo, pstmt);
+                                        System.out.print(fanClubId.trim() + "," + postCreateTime + ", " + postId + ", " + postName + ", " + postMsg + "\n");
+//                                        postBaseInfo.clear();
+//                                        postBaseInfo.add(fanClubId.trim());
+//                                        postBaseInfo.add(postId);
+//                                        postBaseInfo.add(postCreateTime);
+//                                        postBaseInfo.add(postName);
+//                                        postBaseInfo.add(postMsg);
+//                                        insertToSqlServer(postBaseInfo, pstmt);
 
                                     }
 
+                                } else if (timeCompare(postCreateTime, postStartTime)) { // 比對目前文章時間是否晚於設定抓取的開始時間
+
                                 } else
                                     break OuterLoop;
+
 
                             }
 
@@ -221,6 +226,25 @@ public class FbPostBaseInfoToSqlServer {
         } catch (ParseException e) {
             e.printStackTrace();
             countFail++;
+        }
+
+        return result;
+    }
+
+    /**
+     * 比對文章時間是否在我要的區間
+     */
+    static Boolean timeCompare(String postTime, String startTime, String endTime) {
+        Boolean result = true;
+
+        try {
+            java.util.Date post = df.parse(postTime);
+            java.util.Date start = df.parse(startTime);
+            java.util.Date end = df.parse(endTime);
+            result = post.compareTo(start) >= 0 && post.compareTo(end) <= 0 ? true : false;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
 
         return result;

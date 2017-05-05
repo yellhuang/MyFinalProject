@@ -21,6 +21,7 @@ public class FbMsgTagToSqlServer {
 
     static DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     static String postStartTime = "2017-04-01";
+    static String postEndTime = "2017-04-30";
 
     static List<String> fanclubList = new ArrayList<>();
     static List<String> postMsgTagInfo = new ArrayList<>();
@@ -79,8 +80,8 @@ public class FbMsgTagToSqlServer {
                                 Elements postsLev2 = elePosts.get(i).children();
 
                                 postCreateTime = formatTime(postsLev2.get(0).text()); // <created_time>tag
-                                // 比對文章時間是否晚於設定抓取的開始時間
-                                if (timeCompare(postCreateTime, postStartTime)) {
+                                // 比對文章時間是否在某區間
+                                if (timeCompare(postCreateTime, postStartTime, postEndTime)) {
 
                                     // 判斷文章有沒有tag資訊
                                     if (postsLev2.size() == 2) { // 無tag資訊
@@ -89,12 +90,12 @@ public class FbMsgTagToSqlServer {
 
                                         // 判斷文章是否還存在
                                         if (checkPostId(postId)) {
-//                                        System.out.println(postCreateTime + ", " + postId);
-                                            postMsgTagInfo.clear();
-                                            postMsgTagInfo.add(postId);
-                                            postMsgTagInfo.add("");
-                                            postMsgTagInfo.add("");
-                                            insertToSqlServer(postMsgTagInfo, pstmt);
+                                            System.out.println(postCreateTime + ", " + postId);
+//                                            postMsgTagInfo.clear();
+//                                            postMsgTagInfo.add(postId);
+//                                            postMsgTagInfo.add("");
+//                                            postMsgTagInfo.add("");
+//                                            insertToSqlServer(postMsgTagInfo, pstmt);
                                         }
 //
 //
@@ -109,14 +110,16 @@ public class FbMsgTagToSqlServer {
                                             msgTagsName = eleMsgTag.get(1).text(); // <id>tag
                                             msgTagsId = eleMsgTag.get(3).text();
 
-//                                    System.out.print(postCreateTime + ", " + postId + ", " + msgTagsId + ", " + msgTagsName + "\n");
-                                            postMsgTagInfo.clear();
-                                            postMsgTagInfo.add(postId);
-                                            postMsgTagInfo.add(msgTagsId);
-                                            postMsgTagInfo.add(msgTagsName);
-                                            insertToSqlServer(postMsgTagInfo, pstmt);
+                                            System.out.print(postCreateTime + ", " + postId + ", " + msgTagsId + ", " + msgTagsName + "\n");
+//                                            postMsgTagInfo.clear();
+//                                            postMsgTagInfo.add(postId);
+//                                            postMsgTagInfo.add(msgTagsId);
+//                                            postMsgTagInfo.add(msgTagsName);
+//                                            insertToSqlServer(postMsgTagInfo, pstmt);
                                         }
                                     }
+
+                                } else if (timeCompare(postCreateTime, postStartTime)) { // 比對目前文章時間是否晚於設定抓取的開始時間
 
                                 } else
                                     break OuterLoop;
@@ -239,6 +242,25 @@ public class FbMsgTagToSqlServer {
         } catch (ParseException e) {
             e.printStackTrace();
             countFail++;
+        }
+
+        return result;
+    }
+
+    /**
+     * 比對文章時間是否在我要的區間
+     */
+    static Boolean timeCompare(String postTime, String startTime, String endTime) {
+        Boolean result = true;
+
+        try {
+            java.util.Date post = df.parse(postTime);
+            java.util.Date start = df.parse(startTime);
+            java.util.Date end = df.parse(endTime);
+            result = post.compareTo(start) >= 0 && post.compareTo(end) <= 0 ? true : false;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
 
         return result;
